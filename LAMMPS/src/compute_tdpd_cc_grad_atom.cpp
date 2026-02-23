@@ -1,0 +1,87 @@
+#include "compute_tdpd_cc_grad_atom.h"
+
+#include "atom.h"
+#include "comm.h"
+#include "error.h"
+#include "memory.h"
+#include "modify.h"
+#include "update.h"
+
+#include <cstring>
+
+using namespace LAMMPS_NS;
+
+/* ---------------------------------------------------------------------- */
+
+ComputeTDPDCCGradAtom::ComputeTDPDCCGradAtom(LAMMPS *lmp, int narg, char **arg) :
+  Compute(lmp, narg, arg)
+{
+  if (narg != 5) error->all(FLERR,"Number of arguments for compute tdpd/cc_grad/atom command != 5");
+  if (atom->tdpd_flag != 1) error->all(FLERR,"compute tdpd/cc_grad/atom command requires atom_style with concentration (e.g. tdpd)");
+
+  index = utils::inumeric(FLERR,arg[3],false,lmp);
+  icomponent = utils::inumeric(FLERR,arg[4],false,lmp);
+
+  peratom_flag = 1;
+  size_peratom_cols = 0;
+
+  nmax = 0;
+  cc_grad_vector = nullptr;
+}
+
+/* ---------------------------------------------------------------------- */
+
+ComputeTDPDCCGradAtom::~ComputeTDPDCCGradAtom()
+{
+  memory->sfree(cc_grad_vector);
+}
+
+/* ---------------------------------------------------------------------- */
+
+void ComputeTDPDCCGradAtom::init()
+{
+
+  int count = 0;
+  for (int i = 0; i < modify->ncompute; i++)
+    if (strcmp(modify->compute[i]->style,"cc_grad_vector/atom") == 0) count++;
+  if (count > 1 && comm->me == 0)
+    error->warning(FLERR,"More than one compute cc_grad_vector/atom");
+}
+
+/* ---------------------------------------------------------------------- */
+
+void ComputeTDPDCCGradAtom::compute_peratom()
+{
+  invoked_peratom = update->ntimestep;
+
+  // grow cc_vector array if necessary
+
+  if (atom->nmax > nmax) {
+    memory->sfree(cc_grad_vector);
+    nmax = atom->nmax;
+    cc_grad_vector = (double *) memory->smalloc(nmax*sizeof(double),"cc_grad_vector/atom:cc_grad_vector");
+    vector_atom = cc_grad_vector;
+  }
+
+  double **cc_grad = atom->cc_grad;
+  int *mask = atom->mask;
+  int nlocal = atom->nlocal;
+
+    for (int i = 0; i < nlocal; i++) {
+      if (mask[i] & groupbit) {
+         cc_grad_vector[i] = cc_grad[i][(index-1)*3 + icomponent - 1];
+      }
+      else
+         cc_grad_vector[i] = 0.0;
+    }
+}
+
+/* ----------------------------------------------------------------------
+   memory usage of local atom-based array
+------------------------------------------------------------------------- */
+
+double ComputeTDPDCCGradAtom::memory_usage()
+{
+  double bytes = (double)nmax * sizeof(double);
+  return bytes;
+}

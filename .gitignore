@@ -1,0 +1,4 @@
+# LAMMPS build outputs
+LAMMPS/src/lmp_*
+LAMMPS/src/liblammps*.a
+LAMMPS/src/Obj_*/

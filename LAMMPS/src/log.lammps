@@ -1,0 +1,2 @@
+ERROR on proc 0: Cannot open input script ./in.test_3membranes_nuc_front: No such file or directory (../lammps.cpp:542)
+Last command: (unknown)
