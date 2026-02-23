@@ -2,6 +2,7 @@ This is the simulation software for the manuscript.
 To run the simulation, 
 1. Open a terminal and go to the folder .../LAMMPS/src/
 2. Compile the program:
+    make yes-DPD-BASIC  To run the simulation model, the DPD-BASIC package is required.
     make yes-MYFIX  P.S.: MYFIX is the folder name of the customized LAMMPS package
     make mpi
 3. Run the simulation with the example input file using the following command
