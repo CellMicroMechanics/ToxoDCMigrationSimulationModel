@@ -1,0 +1,265 @@
+# This is the input file for the nucleus + PV system.
+# The initial configuration is that the nucleus stays in the front of the cell.
+
+variable PI equal 3.14159265359
+# particles
+
+# 1.CORTEX
+variable ncortex equal 600 # number of particles in the cortex
+variable ncytosol equal 3500 # number of particles in the cytosol
+variable Kcortex equal 10.0 # spring constant for the edge
+variable l0cortex equal 1.0 # rest length for the edge
+variable KAcortex equal 1e-5 # area spring constant for the cortex
+variable A0cortex equal ${PI}*(${ncortex}*${l0cortex}/(2*${PI}))^2 # rest area for the cortex
+variable KCcortex equal 10.0 # bending rigidity for the cortex
+variable ang0cortex equal 180 # rest angle for the cortex
+variable KPcortex equal 1.0 # primeter spring constant for the cortex
+variable P0cortex equal ${ncortex}*${l0cortex} # rest perimeter for the cortex
+
+
+# 2.NUCLEUS
+variable nnucleus equal 200
+variable Knucleus equal 1.0
+variable l0nucleus equal 1.0
+variable KAnucleus equal 1e-5
+variable A0nucleus equal ${PI}*(${nnucleus}*${l0nucleus}/(2*${PI}))^2
+variable KCnucleus equal 10.0
+variable ang0nucleus equal 180
+variable KPnucleus equal 1.0
+variable P0nucleus equal ${nnucleus}*${l0nucleus}
+
+# 3.PV 
+# variable nPV equal 200
+variable KPV equal 1.0
+variable l0PV equal 1.0
+variable KAPV equal 1e-5
+variable A0PV equal ${PI}*(${nPV}*${l0PV}/(2*${PI}))^2
+variable KCPV equal 10.0
+variable ang0PV equal 180
+variable KPPV equal 1.0
+variable P0PV equal ${nPV}*${l0PV}
+
+
+
+variable cx_cortex equal 0
+variable cy_cortex equal 0
+
+
+variable rcortex equal 1.1*${ncortex}*${l0cortex}/(2*${PI})
+variable thcortex equal 0.075*${rcortex}
+
+variable cx_ne equal ${cx_cortex}+0.5*${rcortex}
+variable cy_ne equal ${cy_cortex}
+
+variable cx_PV equal ${cx_cortex}-0.5*${rcortex}
+variable cy_PV equal ${cy_cortex}
+
+variable rnetemp equal ${l0nucleus}*${nnucleus}/(2*${PI})
+variable rref equal 0.45*${rcortex}
+
+if " ${rnetemp} > ${rref} " then & 
+    "variable rne equal ${rref}" &
+else &
+    "variable rne equal ${rnetemp}"
+
+
+variable rPVtemp equal ${l0PV}*${nPV}/(2*${PI})
+if "${rPVtemp} > ${rref}" then &
+    "variable rPV equal ${rref}" &
+else &
+    "variable rPV equal ${rPVtemp}"
+
+variable outter_ne equal 1.1*${rne}
+variable outter_PV equal 1.1*${rPV}
+
+variable xlo equal ${cx_cortex}-1.3*${rcortex}
+variable xhi equal ${cx_cortex}+8*${rcortex}
+variable ylo equal ${cy_cortex}-1.3*${rcortex}
+variable yhi equal ${cy_cortex}+1.3*${rcortex}
+
+
+variable xmu equal 1
+variable gamma equal 1
+
+variable kwall equal 1.0
+variable r0wall equal 2.0
+variable rcutwall equal 2.0
+
+variable channelWidth equal 0.7*${rcortex}
+
+variable px equal 1.0
+variable py equal 0.0
+variable pz equal 0.0 
+
+
+
+
+
+variable temperature equal 0.003
+variable dpd_cut_global equal 1.3
+variable fc_global equal 1
+variable fd_global equal 20
+
+
+variable nsteps1 equal 1000000 # initial relaxation
+variable nsteps2 equal 1000000 # compressing the simulation box to the desired channel width
+variable nsteps3 equal 1000000 # 1st equilibration at the desired channel width
+variable nsteps4 equal 2500000 # 2nd equilibration at the desired channel width after enable tension gradient
+variable nsteps5 equal 3000000 # enable polymerization but no horizontal friction for the cortex to reach its equilirium size
+variable nsteps6 equal 30000000 # enable polymerization and horizontal friction 
+variable dt equal 0.001 # time interval
+
+# seeds
+# variable seed1 equal 465561 # seed for initial cytosol particles
+variable seed2 equal ${seed1}+1 # seed for polymerization
+variable seed3 equal ${seed2}+1 # seed for dpd interactions
+
+variable innerrcortex equal  ${rcortex}-${thcortex}
+variable halfdy equal  (${yhi}-${ylo}-${channelWidth})/2
+
+variable kcoupling equal 0.005 # nuclues-cortex center-of-mass coupling strength
+variable dragcoeff equal 0.005 # nucleus-cortex local drag coefficient
+
+
+variable t0 equal 5.0 # cortical tension baseline value 
+
+variable rate equal 0.16 # cortical polymerization rate
+
+log ${log_filename}
+
+
+
+dimension	2
+
+boundary	p p p
+atom_style	myatomic
+
+atom_modify map array
+neighbor	0.5 bin
+
+lattice		sq 1 
+
+
+
+
+region		box block ${xlo} ${xhi} ${ylo} ${yhi} -0.25 0.25 units box
+create_box	4 box
+
+
+newton		on
+
+region loWall block INF INF INF ${ylo} INF INF side out units box
+
+region hiWall block INF INF ${yhi} INF INF INF side out units box 
+region wall intersect 2 loWall hiWall
+
+
+region    region1 sphere ${cx_cortex} ${cy_cortex} 0.0 ${innerrcortex} side in units box
+region    region2 sphere ${cx_ne} ${cy_ne} 0.0 ${outter_ne} side out units box
+region    region3 sphere ${cx_PV} ${cy_PV} 0.0 ${outter_PV} side out units box
+region    cytosolRegion intersect 3 region1 region2 region3
+
+
+create_atoms 1 random ${ncytosol} ${seed1} cytosolRegion
+create_atoms_onsphere 2 ${ncortex} ${cx_cortex} ${cy_cortex} 0.0 ${rcortex} 
+create_atoms_onsphere 3 ${nnucleus} ${cx_ne} ${cy_ne} 0.0 ${rne}
+create_atoms_onsphere 4 ${nPV} ${cx_PV} ${cy_PV} 0.0 ${rPV}
+
+group cortex type 2
+group fluid type 1
+group nucleus type 3
+group PV type 4
+
+mass * 1
+
+
+
+pair_style dpd ${temperature} ${dpd_cut_global} ${seed3} 
+
+pair_coeff * * ${fc_global} ${fd_global}
+pair_coeff 2 3 ${fc_global} ${fd_global} 4
+pair_coeff 2 4 ${fc_global} ${fd_global} 4 
+pair_coeff 1 2 ${fc_global} ${fd_global} 2.0
+
+
+comm_modify mode single cutoff 8
+comm_modify vel yes
+
+fix 3 all nve
+fix 8 all enforce2d
+fix 6 cortex membrane2dfull ${Kcortex} ${l0cortex} ${KCcortex} ${ang0cortex} ${KAcortex} ${A0cortex} ${KPcortex} ${P0cortex} ${px} ${py} ${pz} 0 ${seed2} 1000 ${t0} 0
+fix 9 all wall/region/friction wall harmonic ${kwall} ${r0wall} 0 0 ${rcutwall} 10000
+fix 10 nucleus membrane2d ${Knucleus} ${l0nucleus} ${KCnucleus} ${ang0nucleus} ${KAnucleus} ${A0nucleus}
+fix 11 PV membrane2d ${KPV} ${l0PV} ${KCPV} ${ang0PV} ${KAPV} ${A0PV}
+fix 7 nucleus cyto/tether 10 6 ${kcoupling}
+dump 2 all custom 500000 ${output_filename} id mass type x y vx vy fx fy proc age ix 
+
+thermo_modify lost warn
+
+fix relax all viscous 0.01
+
+fix 999 all balance 1000000 1.0 shift xy 5 1.1
+
+thermo 200000
+
+timestep ${dt}
+run ${nsteps1}
+
+
+
+variable loDy equal ramp(0,${halfdy})
+variable hiDy equal ramp(0,-${halfdy})
+
+region loWall delete
+region hiWall delete
+region wall delete
+
+region loWall block INF INF INF ${ylo} INF INF move NULL v_loDy NULL side out units box
+region hiWall block INF INF ${yhi} INF INF INF move NULL v_hiDy NULL side out units box
+region wall intersect 2 loWall hiWall
+
+run ${nsteps2}
+
+
+region loWall delete
+region hiWall delete
+region wall delete
+
+
+variable newlo equal  ${ylo}+${halfdy}
+variable newhi equal  ${yhi}-${halfdy}
+
+region loWall block INF INF INF ${newlo} INF INF side out units box
+region hiWall block INF INF ${newhi} INF INF INF side out units box
+region wall intersect 2 loWall hiWall
+
+run ${nsteps3}
+
+
+region loWall delete
+region hiWall delete
+region wall delete
+region wall block INF INF ${newlo} ${newhi} INF INF side in units box
+
+unfix relax
+unfix 6
+fix 6 cortex membrane2dfull ${Kcortex} ${l0cortex} ${KCcortex} ${ang0cortex} ${KAcortex} ${A0cortex} ${KPcortex} ${P0cortex} ${px} ${py} ${pz} 0 ${seed2} 1000 ${t0} ${tgrad}
+
+run ${nsteps4}
+
+# write_restart ./restart.test_full
+
+
+unfix 6
+fix 6 cortex membrane2dfull ${Kcortex} ${l0cortex} ${KCcortex} ${ang0cortex} ${KAcortex} ${A0cortex} ${KPcortex} ${P0cortex} ${px} ${py} ${pz} ${rate} ${seed2} 1000 ${t0} ${tgrad}
+fix nucdrag nucleus active/drag cortex ${dragcoeff} 0 6
+
+run ${nsteps5}
+
+# allow moving
+unfix 9 
+fix 9 all wall/region/friction wall harmonic ${kwall} ${r0wall} ${xmu} ${gamma} ${rcutwall} 10000
+
+run ${nsteps6}
+
+
