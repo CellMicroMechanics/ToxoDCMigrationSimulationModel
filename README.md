@@ -5,7 +5,8 @@ This repository includes:
 2. Example results of simulations and videos.
 Detailed instructions for running the simulation can be found in ./LAMMPS/src/MYFIX/ReadMe.txt.
 
-The model is dedicated to the following work:
+Reference:
+
 Hijacked Immune Cells Traverse Microenvironmental Barriers by Positioning and Pushing their Intracellular Parasite Cargo
 Mauricio J.A. Ruiz-Fernandez, Jianfei Jiang, Armina Mortazavi, Bingzhi Wang, Artur Kuznetcov, Jack Merrin, Markus Meissner, Javier Periz, Benedikt Sabass, Jörg Renkawitz
 bioRxiv 2024.05.03.592378; doi: https://doi.org/10.1101/2024.05.03.592378
