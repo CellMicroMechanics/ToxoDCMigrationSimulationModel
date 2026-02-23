@@ -5,6 +5,7 @@ To run the simulation,
     make yes-DPD-BASIC  To run the simulation model, the DPD-BASIC package is required.
     make yes-MYFIX  P.S.: MYFIX is the folder name of the customized LAMMPS package
     make mpi
+    To enable MPI program compilation, please install the OpenMPI library or the MPICH library on your machine. 
 3. Run the simulation with the example input file using the following command
         mpirun -np NUM_CORES PATH_TO_LAMMPS/LAMMPS/src/lmp_mpi -in ./in.test_3membranes_nuc_front \ 
          -var output_filename "dump.lammps"  -var log_filename "log.lammps" \
